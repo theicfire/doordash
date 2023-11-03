@@ -14,7 +14,7 @@ This has a respectable battery life, because it largely sits in deep sleep. Ther
 These calculations are somewhat rough. I need to get a good current meter and/or oscilliscope to get a better guess.
 
 # Materials
-- WeMos D1 Mini Pro V3.0 (Need one of these newer versions because they use less current during sleep)
+- WeMos D1 Mini Pro V3.0 (Need one of these newer versions because they use [less current during sleep](https://salvatorelab.com/2023/01/wemos-d1-mini-deep-sleep-current-draw/))
 - [TP4056 Li-ion charger breakout board](https://www.amazon.com/gp/product/B00LTQU2RK/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1)
 - Some resistors and a capacitor
 - [1x button + LED](https://www.amazon.com/gp/product/B0816R824L/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1)
