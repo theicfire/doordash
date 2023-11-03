@@ -24,6 +24,10 @@ These calculations are somewhat rough. I need to get a good current meter and/or
 # Schematic
 ![Schematic](assets/schematic.png)
 
+It's worth noting the purpose the capacitor on D1. The ESP8266 does not give you a way to determine if the device woke up due to a button press or the timer. The capacitor solves this by charging up when the button is pressed. When a user presses the button, the RST pin goes low immediately, and quickly goes back to high when the capacitor charges. This low -> high transition causes the ESP to wake up. When it does, the first thing we do is read D1. If it's high, that means the button was pressed.
+
+If the button was pressed, we *keep the capacitor charged* so that pressing the button is disabled (it won't bring RST low). Then, before going to sleep, we programatically discharge the capacitor by making D1 an output and setting it to LOW for a few ms. Genius :).
+
 # Wiring Diagram
 ![Wiring Diagram](assets/wiring_diagram.png)
 
