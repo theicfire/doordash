@@ -41,3 +41,10 @@ If the button was pressed, we *keep the capacitor charged* so that pressing the 
 - Install platformio
 - Connect one of the microcontrollers via USB
 - Run `platformio run -t upload` (This automatically installs FastLED).
+
+# TODO and future feature ideas
+- Get accurate low power calculations. I hear `WiFi.persistent(false)` [helps quite a bit](https://arduinodiy.wordpress.com/2020/02/06/very-deep-sleep-and-energy-saving-on-esp8266-part-5-esp-now/) .. though that's if we're sending data perhaps. See if removing print statements keeps the micro on for shorter.
+- Synchronize the buttons better such that they all turn off at the same time
+- Audio?
+- Have a sensor (microphone?) that notices when the doorbell is actually pressed
+- Don't require a coordinator. Let the devices figure out a winner amongst themselves.
