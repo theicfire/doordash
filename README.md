@@ -16,7 +16,7 @@ These calculations are somewhat rough. I need to get a good current meter and/or
 # Materials
 - WeMos D1 Mini Pro V3.0 (Need one of these newer versions because they use less current during sleep)
 - TP4056 Li-ion charger breakout board
-- Some resistors a capacitor
+- Some resistors and a capacitor
 - 1x button + LED
 - 18650 battery and holder (We used an [EVE INR18650-33V](https://www.18650batterystore.com/products/eve-18650-33v))
 - A micro-usb cable that will get cut ([like this](https://www.amazon.com/gp/product/B0BZ8XWL18/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1))
