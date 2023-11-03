@@ -4,7 +4,7 @@ This project is a solution. It consists of a set of battery powered microcontrol
 
 This has a respectable battery life, because it largely sits in deep sleep. There's one coordinator that determines the winner (first message to get to the coordinator wins). This allows for meshing such that nodes can talk through each other to reach the coordinator.
 
-A project by myself and @MarcManiez
+A project by myself and [@MarcManiez](https://github.com/MarcManiez)
 
 # Low Power Calculation
 - When on with ESP NOW running, the chip takes ~70mA
