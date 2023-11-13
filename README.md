@@ -7,13 +7,10 @@ This has a respectable battery life, because it largely sits in deep sleep. Ther
 A project by myself and [@MarcManiez](https://github.com/MarcManiez)
 
 # Low Power Calculation
-- When on with ESP NOW running, the chip takes ~70mA
-- We turn on the device for ~50ms every 2s
-- During deep sleep, the device takes <1mA
-- So, (50 / 2000) * 70 + (1950 / 2000) * 1 = 2.725mA average
-- 3200mAh battery / 2.725 = 1174.31 hours = ~49 days
+Here's a graph power capture where the ESP is in deep sleep for 2s, then wakes up to listen for ESP NOW messages. This happens repeatedly, so this 4.3mA average is the total average consumption when the buttons aren't pressed.
+![image](https://github.com/theicfire/doordash/assets/442311/b62e0416-9870-4950-a5a4-794c55439a52)
 
-These calculations are somewhat rough. I need to get a good current meter and/or oscilliscope to get a better guess.
+For our battery, that's 3200mAh / 4.3 / 24 hours ~= 31 days of battery life.
 
 # Materials
 - WeMos D1 Mini Pro V3.0 (Need one of these newer versions because they use [less current during sleep](https://salvatorelab.com/2023/01/wemos-d1-mini-deep-sleep-current-draw/))
