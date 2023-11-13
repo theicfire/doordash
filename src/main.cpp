@@ -15,7 +15,7 @@ const int WIFI_CHANNEL = 4;
 const int BUTTON_INPUT = D1;
 const int BUTTON_LED = D2;
 
-const bool IS_COORDINATOR = true; // True for only one device
+const bool IS_COORDINATOR = false; // True for only one device
 
 uint8_t broadcastMac[] = {0xFF, 0xFF, 0xFF,
                           0xFF, 0xFF, 0xFF}; // NULL means send to all peers
@@ -31,7 +31,7 @@ enum States_t {
 } States;
 States_t globalState = SLEEP_LISTEN;
 
-const unsigned long SLEEP_DURATION__us = 1e6;
+const unsigned long SLEEP_DURATION__us = 2e6;
 const unsigned long LISTEN_TIME__ms = 50;
 const unsigned long DOOR_DASH_REBROADCAST_INTERVAL__ms = 20;
 const unsigned long DOOR_DASH_WAITING_FLASH_FREQUENCY__ms = 500;
@@ -67,9 +67,10 @@ void goToSleep() {
   digitalWrite(BUTTON_INPUT, LOW); // Discharge capacitor
   delay(5);
 
-  Serial.println("Going to sleep");
-  delay(10); // TODO remove I think
-  ESP.deepSleep(SLEEP_DURATION__us);
+  if (Serial) {
+    Serial.println("Going to sleep");
+  }
+  ESP.deepSleepInstant(SLEEP_DURATION__us, WAKE_NO_RFCAL);
 }
 
 bool isWinnerMsg(DataStruct *data) {
@@ -265,7 +266,6 @@ void ledLoser() { digitalWrite(BUTTON_LED, HIGH); }
 void setupButton() {
   pinMode(BUTTON_INPUT, INPUT);
   bool btnPressed = digitalRead(BUTTON_INPUT);
-  setupSerial();
   Radio_Init();
 
   pinMode(BUTTON_LED, OUTPUT);
@@ -280,10 +280,12 @@ void setupButton() {
     delay(50);
 
     if (globalState == SLEEP_LISTEN) {
-      Serial.println("Back to sleep");
+      // Serial.println("Back to sleep");
       goToSleep();
     }
   }
+
+  setupSerial();
   // At this point, one of two things has happened: the button was pressed, or
   // we received a message
 
