@@ -45,7 +45,7 @@ If the button was pressed, we *keep the capacitor charged* so that pressing the 
 
 - Install platformio
 - Connect one of the microcontrollers via USB
-- Run `platformio run -t upload` (This automatically installs FastLED).
+- Run `platformio run -t upload`
 
 # TODO and future feature ideas
 - Reduce power consumption. I think going into light sleep could be better, see the end of https://www.espressif.com/sites/default/files/9b-esp8266-low_power_solutions_en_0.pdf. This seems to require the RTOS SDK, though.
