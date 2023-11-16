@@ -48,8 +48,9 @@ If the button was pressed, we *keep the capacitor charged* so that pressing the 
 - Run `platformio run -t upload` (This automatically installs FastLED).
 
 # TODO and future feature ideas
-- Get accurate low power calculations. I hear `WiFi.persistent(false)` [helps quite a bit](https://arduinodiy.wordpress.com/2020/02/06/very-deep-sleep-and-energy-saving-on-esp8266-part-5-esp-now/) .. though that's if we're sending data perhaps. See if removing print statements keeps the micro on for shorter.
+- Reduce power consumption. I think going into light sleep could be better, see the end of https://www.espressif.com/sites/default/files/9b-esp8266-low_power_solutions_en_0.pdf. This seems to require the RTOS SDK, though.
 - Synchronize the buttons better such that they all turn off at the same time
 - Audio?
 - Have a sensor (microphone?) that notices when the doorbell is actually pressed
 - Don't require a coordinator. Let the devices figure out a winner amongst themselves.
+- It seems the ESP8266 can sink 20mA of current, so we can directly power the LED without a transistor.
