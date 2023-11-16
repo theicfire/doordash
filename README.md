@@ -7,10 +7,16 @@ This has a respectable battery life, because it largely sits in deep sleep. Ther
 A project by myself and [@MarcManiez](https://github.com/MarcManiez)
 
 # Low Power Calculation
-Here's a graph power capture where the ESP is in deep sleep for 2s, then wakes up to listen for ESP NOW messages. This happens repeatedly, so this 4.3mA average is the total average consumption when the buttons aren't pressed.
-![image](https://github.com/theicfire/doordash/assets/442311/b62e0416-9870-4950-a5a4-794c55439a52)
+Here's a graph power capture where the ESP is in deep sleep for 2s, then wakes up to listen for ESP NOW messages. This happens repeatedly, so this 4.5mA average is the total average consumption when the buttons aren't pressed.
+<img width="1840" alt="Screenshot 2023-11-15 at 11 17 09 PM" src="https://github.com/theicfire/doordash/assets/442311/d44ad331-eae8-4860-b2ff-71a5a617df19">
 
-For our battery, that's 3200mAh / 4.3 / 24 hours ~= 31 days of battery life.
+For our battery, that's 3200mAh / 4.5 / 24 hours ~= 29 days of battery life.
+
+When the battery is pressed, the average consumption is 90mA for 20 seconds:
+<img width="1840" alt="Screenshot 2023-11-15 at 11 15 08 PM" src="https://github.com/theicfire/doordash/assets/442311/13951240-de6a-4c00-8da5-5c5a42cdd0ce">
+
+90mA * 20 seconds / 3600 seconds per hour = 0.5mAh consumed per button press. So if you press the button 20 times per day, that's only a 10% overhead beyond what the idle consumption is.
+
 
 # Materials
 - WeMos D1 Mini Pro V3.0 (Need one of these newer versions because they use [less current during sleep](https://salvatorelab.com/2023/01/wemos-d1-mini-deep-sleep-current-draw/))
