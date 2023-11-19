@@ -25,6 +25,7 @@ Then the following are useful:
 - `ESPPORT=/dev/cu.usbserial-21210 make -j4 flash`
 - `ESPPORT=/dev/cu.usbserial-21210 make -j4 monitor`
 - `ESPPORT=/dev/cu.usbserial-21210 make -j4 flash monitor # flash and monitor together`
+- `make menuconfig` could be useful, though I haven't used it.
 
 Apparently `make app-flash` is faster than `make flash`. They both seem somewhat slow to me.
 

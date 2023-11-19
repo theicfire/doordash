@@ -144,7 +144,7 @@ void app_main() {
     gpio_set_level(D2, HIGH);
     // ESP_LOGI(TAG, "Sleep to listen");
     // TickType_t start = xTaskGetTickCount();
-    vTaskDelay(20 / portTICK_PERIOD_MS);
+    vTaskDelay(50 / portTICK_PERIOD_MS);
     // gpio_set_level(D2, LOW);
     // vTaskDelay(10 / portTICK_PERIOD_MS);
     // gpio_set_level(D2, HIGH);
