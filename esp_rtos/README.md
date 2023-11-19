@@ -1,4 +1,4 @@
-# Light sleep, ESPNOW, and RTOS SDK
+# Light sleep, ESPNOW, and RTOS SDK Demo
 
 The Arduino code in the main doordash repository uses the [NonOS SDK](https://github.com/espressif/ESP8266_NONOS_SDK). This is the deprecated version of their framework, but more importantly, it supports "forced light sleep" properly. It seems the NonOS SDK also does, but imperically forced light sleep won't wake up from a timer (only a pin change). https://blog.creations.de/?p=149 agrees that it doesn't work.
 
@@ -9,6 +9,8 @@ Light sleep also simplifies the circuit:
 - We no longer need a capacitor or pull up resistor tied to the button, because we can find the wakeup reason purely in software (as shown in this demo).
 
 This ESPNOW code is based on the [RTOS SDK example](https://github.com/espressif/ESP8266_RTOS_SDK/tree/master/examples/wifi/espnow).
+
+This is half-finished, and just a demo about what is possible. I'd need to port over the Arduino code to make this useful.
 
 # Setup and Programming
 The RTOS SDK instructions are pretty straightforward. Here are the instructions copied over and simplified:
