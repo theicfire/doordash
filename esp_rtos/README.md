@@ -34,7 +34,7 @@ Apparently `make app-flash` is faster than `make flash`. They both seem somewhat
 If the device only waits for 20ms each time it wakes up, it can get below 2mA average:
 ![image](https://github.com/theicfire/doordash/assets/442311/0e20264c-1a8e-4e3d-8374-d2f26be584b9)
 ![image](https://github.com/theicfire/doordash/assets/442311/47febca2-0d3a-45f0-ab11-897de686c06b)
-Note how it takes over a second for the current to drop down to 1mA, I have no idea why:
+Note how it takes over a second for the current to drop down to 1mA, **I have no idea why**:
 ![image](https://github.com/theicfire/doordash/assets/442311/4ee19b10-6c6e-4bec-9147-e7109e55ced0)
 
 ## 50ms wake up
