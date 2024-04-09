@@ -48,7 +48,7 @@ If the button was pressed, we *keep the capacitor charged* so that pressing the 
 - Run `platformio run -t upload`
 
 # TODO and future feature ideas
-- Use light sleep to use less power. See the `esp_rtos` directory.
+- Use light sleep to use less power, and make the wiring simpler. See the `esp_rtos` directory.
 - It seems the ESP8266 can sink 20mA of current, so we can directly power the LED without a transistor.
 - Synchronize the buttons better such that they all turn off at the same time
 - Audio?
