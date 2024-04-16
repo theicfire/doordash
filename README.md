@@ -50,6 +50,7 @@ If the button was pressed, we *keep the capacitor charged* so that pressing the 
 # TODO and future feature ideas
 - Use light sleep to use less power, and make the wiring simpler. See the `esp_rtos` directory.
 - It seems the ESP8266 can sink 20mA of current, so we can directly power the LED without a transistor.
+- The two above steps would result in this wiring diagram: https://capture.dropbox.com/QHRb0EphQMrhcw5j
 - Synchronize the buttons better such that they all turn off at the same time
 - Audio?
 - Have a sensor (microphone?) that notices when the doorbell is actually pressed
