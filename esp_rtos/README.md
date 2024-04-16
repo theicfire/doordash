@@ -1,6 +1,6 @@
 # Light sleep, ESPNOW, and RTOS SDK Demo
 
-The Arduino code in the main doordash repository uses the [NonOS SDK](https://github.com/espressif/ESP8266_NONOS_SDK). This is the deprecated version of their framework, but more importantly, it supports "forced light sleep" properly. It seems the NonOS SDK also does, but imperically forced light sleep won't wake up from a timer (only a pin change). https://blog.creations.de/?p=149 agrees that it doesn't work.
+The Arduino code in the main doordash repository uses the [NonOS SDK](https://github.com/espressif/ESP8266_NONOS_SDK). This is the deprecated version of their framework, but more importantly, it supports "forced light sleep" properly. It seems the NonOS SDK also does, but emperically forced light sleep won't wake up from a timer (only a pin change). https://blog.creations.de/?p=149 agrees that it doesn't work.
 
 **Edit**: Actually it may be possible with some very careful steps to get the Arduino code working. See https://github.com/esp8266/Arduino/issues/7055#issuecomment-811918663, which is linked from [this great guide](https://kevinstadler.github.io/notes/esp8266-deep-sleep-light-sleep-arduino/). But I tried that demo code and my device would not wake up!
 
