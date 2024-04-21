@@ -38,11 +38,11 @@ static uint8_t example_broadcast_mac[ESP_NOW_ETH_ALEN] = {0xFF, 0xFF, 0xFF,
 
 #define D1 5
 #define D2 4
+#define BUTTON_LED D2
+#define BUTTON_INPUT D1
 #define D8 15
-#define WAKEUP_PIN D8
 #define HIGH 1
 #define LOW 0
-#define GPIO_OUTPUT_PIN_SEL ((1ULL << D1) | (1ULL << D2))
 
 /* WiFi should start before using ESPNOW */
 static void example_wifi_init(void) {
@@ -96,7 +96,7 @@ void setup_gpio() {
   // set as output mode
   io_conf.mode = GPIO_MODE_OUTPUT;
   // bit mask of the pins that you want to set,e.g.GPIO15/16
-  io_conf.pin_bit_mask = GPIO_OUTPUT_PIN_SEL;
+  io_conf.pin_bit_mask = (1ULL << BUTTON_LED);
   // disable pull-down mode
   io_conf.pull_down_en = 0;
   // disable pull-up mode
@@ -105,13 +105,15 @@ void setup_gpio() {
   gpio_config(&io_conf);
 
   // Wakeup pin
-  gpio_config_t config = {.pin_bit_mask = (1ULL << WAKEUP_PIN),
+  gpio_config_t config = {.pin_bit_mask = (1ULL << BUTTON_INPUT),
                           .mode = GPIO_MODE_INPUT,
                           .pull_down_en = false, // TODO make false..
-                          .pull_up_en = false,
+                          .pull_up_en = true,
                           .intr_type = GPIO_INTR_DISABLE};
   gpio_config(&config);
 }
+
+void setLed(bool on) { gpio_set_level(BUTTON_LED, !on); }
 
 void app_main() {
   setup_gpio();
@@ -126,49 +128,63 @@ void app_main() {
 
   while (true) {
     // ESP_LOGI(TAG, "Wifi start");
-    int wake_level = gpio_get_level(WAKEUP_PIN);
+    int wake_level = !gpio_get_level(BUTTON_INPUT);
     if (wake_level == HIGH) {
       ESP_LOGI(TAG, "Woke up from button press");
     } else {
       ESP_LOGI(TAG, "Woke up from timer");
     }
 
-    gpio_set_level(D1, HIGH);
+    // gpio_set_level(BUTTON_INPUT, HIGH);
     ESP_ERROR_CHECK(esp_wifi_start());
-    gpio_set_level(D1, LOW);
+    // gpio_set_level(BUTTON_INPUT, LOW);
 
     // ESP_LOGI(TAG, "espnow init");
     example_espnow_init();
-    gpio_set_level(D1, HIGH);
+    // gpio_set_level(BUTTON_INPUT, HIGH);
 
-    gpio_set_level(D2, HIGH);
+    setLed(true);
     // ESP_LOGI(TAG, "Sleep to listen");
     // TickType_t start = xTaskGetTickCount();
     vTaskDelay(50 / portTICK_PERIOD_MS);
-    // gpio_set_level(D2, LOW);
+    // gpio_set_level(BUTTON_LED, LOW);
     // vTaskDelay(10 / portTICK_PERIOD_MS);
-    // gpio_set_level(D2, HIGH);
+    // gpio_set_level(BUTTON_LED, HIGH);
     // vTaskDelay(10 / portTICK_PERIOD_MS);
     // TickType_t end = xTaskGetTickCount();
     // ESP_LOGI(TAG, "Slept for %d ticks", (end - start));
     // ESP_LOGI(TAG, "end %d", end);
     // ESP_LOGI(TAG, "portTICK %d", portTICK_PERIOD_MS);
+    setLed(false);
 
-    gpio_set_level(D2, LOW);
-    gpio_set_level(D1, LOW);
+    ESP_LOGI(TAG, "Waiting for button press..");
+    while (true) {
+      vTaskDelay(50 / portTICK_PERIOD_MS);
+      int btn_pressed = !gpio_get_level(BUTTON_INPUT);
+      if (btn_pressed) {
+        ESP_LOGI(TAG, "Button pressed");
+        setLed(true);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        setLed(false);
+        break;
+      }
+    }
+
+    ESP_LOGI(TAG, "Sleeping...");
+    // gpio_set_level(BUTTON_INPUT, LOW);
 
     // ESP_LOGI(TAG, "deinit esp now");
     esp_now_deinit();
-    gpio_set_level(D1, HIGH);
+    // gpio_set_level(BUTTON_INPUT, HIGH);
 
     // ESP_LOGI(TAG, "wifi stop");
     esp_wifi_stop();
-    gpio_set_level(D1, LOW);
+    // gpio_set_level(BUTTON_INPUT, LOW);
 
     // ESP_LOGI(TAG, "Going to sleep");
-    gpio_wakeup_enable(WAKEUP_PIN, GPIO_INTR_HIGH_LEVEL);
+    gpio_wakeup_enable(BUTTON_INPUT, GPIO_INTR_LOW_LEVEL);
     esp_sleep_enable_gpio_wakeup();
-    esp_sleep_enable_timer_wakeup(2e6);
+    esp_sleep_enable_timer_wakeup(5e6);
     esp_light_sleep_start();
 
     // ESP_LOGI(TAG, "Wake up");
