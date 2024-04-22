@@ -33,8 +33,9 @@ const gpio_num_t BUTTON_INPUT = D1;
 #define HIGH 1
 #define LOW 0
 
-uint8_t broadcastMac[] = {0xFF, 0xFF, 0xFF,
-                          0xFF, 0xFF, 0xFF}; // NULL means send to all peers
+uint8_t BROADCAST_MAC[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+uint8_t WINNER_MAC[6] = {0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU};
+uint8_t BUTTON_PRESSED_MAC[6] = {0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU};
 
 enum States_t {
   SLEEP_LISTEN = 1,
@@ -45,7 +46,6 @@ enum States_t {
   DOOR_DASH_COOL_DOWN_LOSER = 6,
   DOOR_DASH_COOL_DOWN_UNKNOWN = 7,
 } States;
-States_t globalState = SLEEP_LISTEN;
 
 const unsigned long SLEEP_DURATION__us = 2e6;
 const unsigned long LISTEN_TIME__ms = 50;
@@ -56,10 +56,9 @@ const unsigned long DOOR_DASH_COORDINATION_DURATION__ms = 17e3;
 const unsigned long FLASH_DURATION__ms = 5e3;
 const unsigned long COOL_DOWN__ms = 15e3;
 
-unsigned long doorDashStartedAt = 0;
-bool hasDeclaredWinner = false;
-uint8_t winnerMac[6] = {0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU};
-uint8_t buttonPressedMac[6] = {0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU};
+States_t globalState = SLEEP_LISTEN;
+unsigned long globalDoorDashStartedAt = 0;
+bool globalHasDeclaredWinner = false;
 
 struct __attribute__((packed)) DataStruct {
   // Device sending to master that the device's button was pressed
@@ -156,27 +155,6 @@ void setup_gpio() {
 
 void setLed(bool on) { gpio_set_level(BUTTON_LED, !on); }
 bool isButtonPressed() { return !gpio_get_level(BUTTON_INPUT); }
-
-void goToSleep() {
-  Serial::println("Going to sleep");
-  setLed(false);
-  esp_now_deinit();
-  esp_wifi_stop();
-  gpio_wakeup_enable(BUTTON_INPUT, GPIO_INTR_LOW_LEVEL);
-  esp_sleep_enable_gpio_wakeup();
-  esp_sleep_enable_timer_wakeup(5e6);
-  esp_light_sleep_start();
-}
-
-bool isWinnerMsg(DataStruct *data) {
-  for (int i = 0; i < 6; i++) {
-    if (data->winner_mac[i] != 0) {
-      return true;
-    }
-  }
-  return false;
-}
-
 void transitionState(States_t newState) {
   globalState = newState;
 
@@ -208,6 +186,29 @@ void transitionState(States_t newState) {
   }
 }
 
+void goToSleep() {
+  Serial::println("Going to sleep");
+  transitionState(SLEEP_LISTEN);
+  globalDoorDashStartedAt = 0;
+  globalHasDeclaredWinner = false;
+  setLed(false);
+  esp_now_deinit();
+  esp_wifi_stop();
+  gpio_wakeup_enable(BUTTON_INPUT, GPIO_INTR_LOW_LEVEL);
+  esp_sleep_enable_gpio_wakeup();
+  esp_sleep_enable_timer_wakeup(5e6);
+  esp_light_sleep_start();
+}
+
+bool isWinnerMsg(DataStruct *data) {
+  for (int i = 0; i < 6; i++) {
+    if (data->winner_mac[i] != 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void printMac(uint8_t *macaddr) { ESP_LOG_BUFFER_HEX(TAG, macaddr, 6); }
 
 void getMacAddress(uint8_t *mac) {
@@ -218,7 +219,7 @@ void getMacAddress(uint8_t *mac) {
 void sendButtonPressed(uint8_t *mac) {
   DataStruct sendingData = {};
   memcpy((uint8_t *)sendingData.button_pressed_mac, mac, 6);
-  esp_now_send(broadcastMac, (uint8_t *)&sendingData,
+  esp_now_send(BROADCAST_MAC, (uint8_t *)&sendingData,
                sizeof(sendingData)); // NULL means send to all peers
 }
 
@@ -226,12 +227,12 @@ void sendWinner(uint8_t *winner) {
   DataStruct sendingData = {};
   // TODO make it cleaner instead of this 6. Make it a struct instead?
   memcpy((uint8_t *)sendingData.winner_mac, winner, 6);
-  esp_now_send(broadcastMac, (uint8_t *)&sendingData,
+  esp_now_send(BROADCAST_MAC, (uint8_t *)&sendingData,
                sizeof(sendingData)); // NULL means send to all peers
 }
 
 void rebroadcast(uint8_t *data, uint8_t len) {
-  esp_now_send(broadcastMac, data, len);
+  esp_now_send(BROADCAST_MAC, data, len);
 }
 
 bool isMacAddressSelf(uint8_t *mac) {
@@ -252,18 +253,18 @@ void delay(int millis) { vTaskDelay(millis / portTICK_PERIOD_MS); }
 void coordinatorCallBackFunction(const uint8_t *senderMac,
                                  const uint8_t *incomingData, int len) {
   DataStruct *data = (DataStruct *)incomingData;
-  if (!hasDeclaredWinner) {
+  if (!globalHasDeclaredWinner) {
     Serial::println("Declare winner: ");
     printMac(data->button_pressed_mac);
     ESP_LOGI(TAG, "\n"); // newline..
-    memcpy((uint8_t *)winnerMac, data->button_pressed_mac, 6);
+    memcpy((uint8_t *)WINNER_MAC, data->button_pressed_mac, 6);
 
-    doorDashStartedAt = millis();
-    hasDeclaredWinner = true;
+    globalDoorDashStartedAt = millis();
+    globalHasDeclaredWinner = true;
   }
 
-  if (hasDeclaredWinner) {
-    sendWinner((uint8_t *)winnerMac);
+  if (globalHasDeclaredWinner) {
+    sendWinner((uint8_t *)WINNER_MAC);
   }
 }
 
@@ -274,7 +275,7 @@ void buttonCallBackFunction(const uint8_t *senderMac,
   // Handle state changes, and rebroadcasting
   if (isWinnerMsg(data)) { // WINNER_MSG
     if (globalState == SLEEP_LISTEN || globalState == DOOR_DASH_WAITING) {
-      memcpy((uint8_t *)winnerMac, data->winner_mac, 6);
+      memcpy((uint8_t *)WINNER_MAC, data->winner_mac, 6);
       if (isMacAddressSelf(data->winner_mac)) {
         transitionState(DOOR_DASH_WINNER);
       } else {
@@ -283,19 +284,19 @@ void buttonCallBackFunction(const uint8_t *senderMac,
     }
   } else { // PRESSED_MSG
     if (globalState == SLEEP_LISTEN) {
-      memcpy((uint8_t *)buttonPressedMac, data->button_pressed_mac, 6);
+      memcpy((uint8_t *)BUTTON_PRESSED_MAC, data->button_pressed_mac, 6);
       transitionState(DOOR_DASH_WAITING);
     }
   }
-  if (doorDashStartedAt == 0) {
+  if (globalDoorDashStartedAt == 0) {
     // Gets reset after the button goes to sleep
-    doorDashStartedAt = millis();
+    globalDoorDashStartedAt = millis();
   }
 }
 
 void ledWinner() {
   // Flash LED fast
-  if ((millis() - doorDashStartedAt) %
+  if ((millis() - globalDoorDashStartedAt) %
           (DOOR_DASH_WINNER_FLASH_FREQUENCY__ms * 2) <
       DOOR_DASH_WINNER_FLASH_FREQUENCY__ms) {
     setLed(true);
@@ -306,7 +307,7 @@ void ledWinner() {
 
 void ledUnknown() {
   // Slowly flash LED
-  if ((millis() - doorDashStartedAt) %
+  if ((millis() - globalDoorDashStartedAt) %
           (DOOR_DASH_WAITING_FLASH_FREQUENCY__ms * 2) <
       DOOR_DASH_WAITING_FLASH_FREQUENCY__ms) {
     setLed(true);
@@ -318,7 +319,6 @@ void ledUnknown() {
 void ledLoser() { setLed(true); }
 
 void runButton(bool btnPressed) {
-  setLed(false);
 
   // pinMode(BUTTON_LED, OUTPUT);
 
@@ -344,7 +344,7 @@ void runButton(bool btnPressed) {
   if (btnPressed && !readyToSleep) {
     Serial::println("Button pressed");
     transitionState(DOOR_DASH_WAITING);
-    doorDashStartedAt = millis();
+    globalDoorDashStartedAt = millis();
   }
 
   unsigned long lastBroadcast = 0;
@@ -358,12 +358,12 @@ void runButton(bool btnPressed) {
           getMacAddress((uint8_t *)selfMacAddress);
           sendButtonPressed((uint8_t *)selfMacAddress);
         } else {
-          sendButtonPressed((uint8_t *)buttonPressedMac);
+          sendButtonPressed((uint8_t *)BUTTON_PRESSED_MAC);
         }
         lastBroadcast = millis();
       }
       // If more than FLASH_DURATION__ms has passed, cool down
-      if (millis() - doorDashStartedAt >
+      if (millis() - globalDoorDashStartedAt >
           FLASH_DURATION__ms) { // Should theoretically never happen as long
                                 // as the coordinator does its job.
         Serial::println("ERROR, never received a WINNER_MSG before cooldown");
@@ -372,42 +372,45 @@ void runButton(bool btnPressed) {
     } else if (globalState == DOOR_DASH_WINNER) {
       // Broadcast repeatedly who the winner is
       if (millis() - lastBroadcast > DOOR_DASH_REBROADCAST_INTERVAL__ms) {
-        sendWinner((uint8_t *)winnerMac);
+        sendWinner((uint8_t *)WINNER_MAC);
         lastBroadcast = millis();
       }
       ledWinner();
       // If more than 5 seconds have passed, go to cool down state
-      if (millis() - doorDashStartedAt > FLASH_DURATION__ms) {
+      if (millis() - globalDoorDashStartedAt > FLASH_DURATION__ms) {
         transitionState(DOOR_DASH_COOL_DOWN_WINNER);
       }
     } else if (globalState == DOOR_DASH_LOSER) {
       // Broadcast repeatedly who the winner is
       if (millis() - lastBroadcast > DOOR_DASH_REBROADCAST_INTERVAL__ms) {
-        sendWinner((uint8_t *)winnerMac);
+        sendWinner((uint8_t *)WINNER_MAC);
         lastBroadcast = millis();
       }
       ledLoser();
       // If more than 5 seconds have passed, go to cool down state
-      if (millis() - doorDashStartedAt > FLASH_DURATION__ms) {
+      if (millis() - globalDoorDashStartedAt > FLASH_DURATION__ms) {
         transitionState(DOOR_DASH_COOL_DOWN_LOSER);
       }
     } else if (globalState == DOOR_DASH_COOL_DOWN_WINNER) {
       ledWinner();
       // Sleep after cool down period is over
-      if (millis() - doorDashStartedAt > FLASH_DURATION__ms + COOL_DOWN__ms) {
+      if (millis() - globalDoorDashStartedAt >
+          FLASH_DURATION__ms + COOL_DOWN__ms) {
         readyToSleep = true;
       }
     } else if (globalState == DOOR_DASH_COOL_DOWN_LOSER) {
       ledLoser();
       // Sleep after cool down period is over
-      if (millis() - doorDashStartedAt > FLASH_DURATION__ms + COOL_DOWN__ms) {
+      if (millis() - globalDoorDashStartedAt >
+          FLASH_DURATION__ms + COOL_DOWN__ms) {
         readyToSleep = true;
       }
     } else { // DOOR_DASH_COOL_DOWN_UNKNOWN
       ledUnknown();
 
       // Sleep after cool down period is over
-      if (millis() - doorDashStartedAt > FLASH_DURATION__ms + COOL_DOWN__ms) {
+      if (millis() - globalDoorDashStartedAt >
+          FLASH_DURATION__ms + COOL_DOWN__ms) {
         readyToSleep = true;
       }
     }
@@ -419,11 +422,11 @@ void setupCoordinator() {
   // Radio_Init();
 
   while (true) {
-    if (hasDeclaredWinner &&
-        millis() - doorDashStartedAt > DOOR_DASH_COORDINATION_DURATION__ms) {
+    if (globalHasDeclaredWinner && millis() - globalDoorDashStartedAt >
+                                       DOOR_DASH_COORDINATION_DURATION__ms) {
       Serial::println("Resetting after doordash");
-      doorDashStartedAt = 0;
-      hasDeclaredWinner = false;
+      globalDoorDashStartedAt = 0;
+      globalHasDeclaredWinner = false;
     }
   }
 }
@@ -447,6 +450,7 @@ void app_main() {
     setupCoordinator();
   } else {
     setup_gpio();
+    setLed(false);
 
     while (true) {
       bool btnPressed = isButtonPressed();

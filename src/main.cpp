@@ -17,8 +17,8 @@ const int BUTTON_LED = D2;
 
 const bool IS_COORDINATOR = false; // True for only one device
 
-uint8_t broadcastMac[] = {0xFF, 0xFF, 0xFF,
-                          0xFF, 0xFF, 0xFF}; // NULL means send to all peers
+uint8_t BROADCAST_MAC[] = {0xFF, 0xFF, 0xFF,
+                           0xFF, 0xFF, 0xFF}; // NULL means send to all peers
 
 enum States_t {
   SLEEP_LISTEN = 1,
@@ -40,10 +40,10 @@ const unsigned long DOOR_DASH_COORDINATION_DURATION__ms = 17e3;
 const unsigned long FLASH_DURATION__ms = 5e3;
 const unsigned long COOL_DOWN__ms = 15e3;
 
-unsigned long doorDashStartedAt = 0;
-bool hasDeclaredWinner = false;
+unsigned long globalDoorDashStartedAt = 0;
+bool globalHasDeclaredWinner = false;
 uint8_t winnerMac[6] = {0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU};
-uint8_t buttonPressedMac[6] = {0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU};
+uint8_t BUTTON_PRESSED_MAC[6] = {0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU};
 
 struct __attribute__((packed)) DataStruct {
   // Device sending to master that the device's button was pressed
@@ -138,7 +138,7 @@ void setMacAddress(uint8_t *mac) { WiFi.macAddress(mac); }
 void sendButtonPressed(uint8_t *mac) {
   DataStruct sendingData = {};
   memcpy((uint8_t *)sendingData.button_pressed_mac, mac, 6);
-  esp_now_send(broadcastMac, (uint8_t *)&sendingData,
+  esp_now_send(BROADCAST_MAC, (uint8_t *)&sendingData,
                sizeof(sendingData)); // NULL means send to all peers
 }
 
@@ -146,12 +146,12 @@ void sendWinner(uint8_t *winner) {
   DataStruct sendingData = {};
   // TODO make it cleaner instead of this 6. Make it a struct instead?
   memcpy((uint8_t *)sendingData.winner_mac, winner, 6);
-  esp_now_send(broadcastMac, (uint8_t *)&sendingData,
+  esp_now_send(BROADCAST_MAC, (uint8_t *)&sendingData,
                sizeof(sendingData)); // NULL means send to all peers
 }
 
 void rebroadcast(uint8_t *data, uint8_t len) {
-  esp_now_send(broadcastMac, data, len);
+  esp_now_send(BROADCAST_MAC, data, len);
 }
 
 bool isMacAddressSelf(uint8_t *mac) {
@@ -168,17 +168,17 @@ bool isMacAddressSelf(uint8_t *mac) {
 void coordinatorCallBackFunction(uint8_t *senderMac, uint8_t *incomingData,
                                  uint8_t len) {
   DataStruct *data = (DataStruct *)incomingData;
-  if (!hasDeclaredWinner) {
+  if (!globalHasDeclaredWinner) {
     Serial.print("Declare winner: ");
     printMac(data->button_pressed_mac);
     Serial.println();
     memcpy((uint8_t *)winnerMac, data->button_pressed_mac, 6);
 
-    doorDashStartedAt = millis();
-    hasDeclaredWinner = true;
+    globalDoorDashStartedAt = millis();
+    globalHasDeclaredWinner = true;
   }
 
-  if (hasDeclaredWinner) {
+  if (globalHasDeclaredWinner) {
     sendWinner((uint8_t *)winnerMac);
   }
 }
@@ -199,13 +199,13 @@ void buttonCallBackFunction(uint8_t *senderMac, uint8_t *incomingData,
     }
   } else { // PRESSED_MSG
     if (globalState == SLEEP_LISTEN) {
-      memcpy((uint8_t *)buttonPressedMac, data->button_pressed_mac, 6);
+      memcpy((uint8_t *)BUTTON_PRESSED_MAC, data->button_pressed_mac, 6);
       transitionState(DOOR_DASH_WAITING);
     }
   }
-  if (doorDashStartedAt == 0) {
+  if (globalDoorDashStartedAt == 0) {
     // Gets reset after the button goes to sleep
-    doorDashStartedAt = millis();
+    globalDoorDashStartedAt = millis();
   }
 }
 
@@ -221,12 +221,12 @@ void Radio_Init() {
   WiFi.mode(WIFI_STA); // Station mode for esp-now controller
 
   Serial.printf("This mac: %s, ", WiFi.macAddress().c_str());
-  Serial.printf("target mac: %02x%02x%02x%02x%02x%02x", broadcastMac[0],
-                broadcastMac[1], broadcastMac[2], broadcastMac[3],
-                broadcastMac[4], broadcastMac[5]);
+  Serial.printf("target mac: %02x%02x%02x%02x%02x%02x", BROADCAST_MAC[0],
+                BROADCAST_MAC[1], BROADCAST_MAC[2], BROADCAST_MAC[3],
+                BROADCAST_MAC[4], BROADCAST_MAC[5]);
   Serial.printf(", channel: %i\n", WIFI_CHANNEL);
 
-  esp_now_add_peer(broadcastMac, ESP_NOW_ROLE_COMBO, WIFI_CHANNEL, NULL, 0);
+  esp_now_add_peer(BROADCAST_MAC, ESP_NOW_ROLE_COMBO, WIFI_CHANNEL, NULL, 0);
 
   // TODO consider bringing back receiveCallBackFunction so that IS_COORDINATOR
   // is not checked twice
@@ -241,7 +241,7 @@ void Radio_Init() {
 
 void ledWinner() {
   // Flash LED fast
-  if ((millis() - doorDashStartedAt) %
+  if ((millis() - globalDoorDashStartedAt) %
           (DOOR_DASH_WINNER_FLASH_FREQUENCY__ms * 2) <
       DOOR_DASH_WINNER_FLASH_FREQUENCY__ms) {
     digitalWrite(BUTTON_LED, HIGH);
@@ -252,7 +252,7 @@ void ledWinner() {
 
 void ledUnknown() {
   // Slowly flash LED
-  if ((millis() - doorDashStartedAt) %
+  if ((millis() - globalDoorDashStartedAt) %
           (DOOR_DASH_WAITING_FLASH_FREQUENCY__ms * 2) <
       DOOR_DASH_WAITING_FLASH_FREQUENCY__ms) {
     digitalWrite(BUTTON_LED, HIGH);
@@ -292,7 +292,7 @@ void setupButton() {
   if (btnPressed) {
     Serial.println("Button pressed");
     transitionState(DOOR_DASH_WAITING);
-    doorDashStartedAt = millis();
+    globalDoorDashStartedAt = millis();
   }
 
   keepCapacitorCharged(); // Prevent button from resetting mid-doordash
@@ -309,12 +309,12 @@ void setupButton() {
           setMacAddress((uint8_t *)selfMacAddress);
           sendButtonPressed((uint8_t *)selfMacAddress);
         } else {
-          sendButtonPressed((uint8_t *)buttonPressedMac);
+          sendButtonPressed((uint8_t *)BUTTON_PRESSED_MAC);
         }
         lastBroadcast = millis();
       }
       // If more than FLASH_DURATION__ms has passed, cool down
-      if (millis() - doorDashStartedAt >
+      if (millis() - globalDoorDashStartedAt >
           FLASH_DURATION__ms) { // Should theoretically never happen as long as
                                 // the coordinator does its job.
         Serial.println("ERROR, never received a WINNER_MSG before cooldown");
@@ -328,7 +328,7 @@ void setupButton() {
       }
       ledWinner();
       // If more than 5 seconds have passed, go to cool down state
-      if (millis() - doorDashStartedAt > FLASH_DURATION__ms) {
+      if (millis() - globalDoorDashStartedAt > FLASH_DURATION__ms) {
         transitionState(DOOR_DASH_COOL_DOWN_WINNER);
       }
     } else if (globalState == DOOR_DASH_LOSER) {
@@ -339,26 +339,29 @@ void setupButton() {
       }
       ledLoser();
       // If more than 5 seconds have passed, go to cool down state
-      if (millis() - doorDashStartedAt > FLASH_DURATION__ms) {
+      if (millis() - globalDoorDashStartedAt > FLASH_DURATION__ms) {
         transitionState(DOOR_DASH_COOL_DOWN_LOSER);
       }
     } else if (globalState == DOOR_DASH_COOL_DOWN_WINNER) {
       ledWinner();
       // Sleep after cool down period is over
-      if (millis() - doorDashStartedAt > FLASH_DURATION__ms + COOL_DOWN__ms) {
+      if (millis() - globalDoorDashStartedAt >
+          FLASH_DURATION__ms + COOL_DOWN__ms) {
         goToSleep();
       }
     } else if (globalState == DOOR_DASH_COOL_DOWN_LOSER) {
       ledLoser();
       // Sleep after cool down period is over
-      if (millis() - doorDashStartedAt > FLASH_DURATION__ms + COOL_DOWN__ms) {
+      if (millis() - globalDoorDashStartedAt >
+          FLASH_DURATION__ms + COOL_DOWN__ms) {
         goToSleep();
       }
     } else { // DOOR_DASH_COOL_DOWN_UNKNOWN
       ledUnknown();
 
       // Sleep after cool down period is over
-      if (millis() - doorDashStartedAt > FLASH_DURATION__ms + COOL_DOWN__ms) {
+      if (millis() - globalDoorDashStartedAt >
+          FLASH_DURATION__ms + COOL_DOWN__ms) {
         goToSleep();
       }
     }
@@ -371,11 +374,11 @@ void setupCoordinator() {
 
   while (true) {
     callWatchdog();
-    if (hasDeclaredWinner &&
-        millis() - doorDashStartedAt > DOOR_DASH_COORDINATION_DURATION__ms) {
+    if (globalHasDeclaredWinner && millis() - globalDoorDashStartedAt >
+                                       DOOR_DASH_COORDINATION_DURATION__ms) {
       Serial.println("Resetting after doordash");
-      doorDashStartedAt = 0;
-      hasDeclaredWinner = false;
+      globalDoorDashStartedAt = 0;
+      globalHasDeclaredWinner = false;
     }
   }
 }
