@@ -196,7 +196,7 @@ void goToSleep() {
   esp_wifi_stop();
   gpio_wakeup_enable(BUTTON_INPUT, GPIO_INTR_LOW_LEVEL);
   esp_sleep_enable_gpio_wakeup();
-  esp_sleep_enable_timer_wakeup(5e6);
+  esp_sleep_enable_timer_wakeup(2e6);
   esp_light_sleep_start();
 }
 
