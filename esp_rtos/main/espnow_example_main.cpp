@@ -30,17 +30,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+extern "C" void app_main();
 
 static const char *TAG = "espnow_example";
 
 static uint8_t example_broadcast_mac[ESP_NOW_ETH_ALEN] = {0xFF, 0xFF, 0xFF,
                                                           0xFF, 0xFF, 0xFF};
 
-#define D1 5
-#define D2 4
-#define BUTTON_LED D2
-#define BUTTON_INPUT D1
-#define D8 15
+const gpio_num_t D1 = GPIO_NUM_5;
+const gpio_num_t D2 = GPIO_NUM_4;
+const gpio_num_t BUTTON_LED = D2;
+const gpio_num_t BUTTON_INPUT = D1;
 #define HIGH 1
 #define LOW 0
 
@@ -71,7 +71,8 @@ static esp_err_t example_espnow_init(void) {
   //   ESP_ERROR_CHECK(esp_now_set_pmk((uint8_t *)CONFIG_ESPNOW_PMK));
 
   /* Add broadcast peer information to peer list. */
-  esp_now_peer_info_t *peer = malloc(sizeof(esp_now_peer_info_t));
+  esp_now_peer_info_t *peer =
+      static_cast<esp_now_peer_info_t *>(malloc(sizeof(esp_now_peer_info_t)));
   if (peer == NULL) {
     ESP_LOGE(TAG, "Malloc peer information fail");
     esp_now_deinit();
@@ -98,17 +99,17 @@ void setup_gpio() {
   // bit mask of the pins that you want to set,e.g.GPIO15/16
   io_conf.pin_bit_mask = (1ULL << BUTTON_LED);
   // disable pull-down mode
-  io_conf.pull_down_en = 0;
+  io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
   // disable pull-up mode
-  io_conf.pull_up_en = 0;
+  io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
   // configure GPIO with the given settings
   gpio_config(&io_conf);
 
   // Wakeup pin
   gpio_config_t config = {.pin_bit_mask = (1ULL << BUTTON_INPUT),
                           .mode = GPIO_MODE_INPUT,
-                          .pull_down_en = false, // TODO make false..
-                          .pull_up_en = true,
+                          .pull_up_en = GPIO_PULLUP_ENABLE,
+                          .pull_down_en = GPIO_PULLDOWN_DISABLE,
                           .intr_type = GPIO_INTR_DISABLE};
   gpio_config(&config);
 }
@@ -123,7 +124,8 @@ void app_main() {
   example_wifi_init();
   ESP_ERROR_CHECK(esp_wifi_start());
   // TODO, can remove later??
-  ESP_ERROR_CHECK(esp_wifi_set_channel(CONFIG_ESPNOW_CHANNEL, 0));
+  ESP_ERROR_CHECK(
+      esp_wifi_set_channel(CONFIG_ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE));
   esp_wifi_stop();
 
   while (true) {
